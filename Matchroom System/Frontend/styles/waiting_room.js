@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('https://your-deployed-backend.on.render.com'); // Replace with your backend URL
+const socket = io('https://dt-matchroom.onrender.com'); // Replace with your backend URL
 
 export default function WaitingRoom() {
     const [waitingUsers, setWaitingUsers] = useState([]);
