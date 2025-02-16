@@ -1,7 +1,10 @@
+// monorepo-structure
+// /matchroom-app
+//    ├── frontend (Next.js)
+//    ├── backend (Node.js with Express & WebSockets)
+
+// Backend (Node.js + Express + WebSockets)
 const express = require('express');
-const session = require('express-session');
-const passport = require('passport');
-const SteamStrategy = require('passport-steam').Strategy;
 const http = require('http');
 const { Server } = require('socket.io');
 const nodemailer = require('nodemailer');
@@ -13,66 +16,14 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: '*',
-        methods: ['GET', 'POST'],
-        transports: ['websocket', 'polling']
+        methods: ['GET', 'POST']
     }
 });
 
 const matchRooms = {};
 const maps = ["Dust2", "Anubis", "Train", "Overpass", "Ancient", "Inferno", "Mirage"];
-const waitingUsers = new Set(); // ✅ Store logged-in users
 
-// ✅ Setup session middleware
-app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true
-}));
-
-// ✅ Initialize Passport.js
-app.use(passport.initialize());
-app.use(passport.session());
-
-// ✅ Configure Steam authentication strategy
-passport.use(new SteamStrategy({
-    returnURL: `${process.env.BASE_URL}/auth/steam/return`,
-    realm: process.env.BASE_URL,
-    apiKey: process.env.STEAM_API_KEY
-}, (identifier, profile, done) => {
-    profile.steamId = identifier.match(/\d+$/)[0]; // Extract Steam ID
-    return done(null, profile);
-}));
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
-
-// ✅ Steam Login Route
-app.get('/auth/steam', passport.authenticate('steam'));
-
-// ✅ Steam Callback Route
-app.get('/auth/steam/return',
-    passport.authenticate('steam', { failureRedirect: '/' }),
-    (req, res) => {
-        waitingUsers.add(req.user); // ✅ Add user to waiting room
-        res.redirect('/waiting-room'); // Redirect to waiting room
-    }
-);
-
-// ✅ API to fetch waiting users
-app.get('/api/waiting-users', (req, res) => {
-    res.json(Array.from(waitingUsers));
-});
-
-// ✅ Logout Route
-app.get('/logout', (req, res) => {
-    waitingUsers.delete(req.user);
-    req.logout(() => res.redirect('/'));
-});
-
-// ✅ WebSockets for Matchroom
 io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
-
     socket.on('joinRoom', ({ room, player }) => {
         if (!matchRooms[room]) {
             matchRooms[room] = { teams: { A: [], B: [], C: [], D: [] }, bans: [] };
@@ -82,26 +33,36 @@ io.on('connection', (socket) => {
     });
 
     socket.on('banMap', ({ room, captain, map }) => {
-        if (matchRooms[room].bans.length < maps.length - 1 && maps.includes(map)) {
+        if (matchRooms[room].bans.length < 2 && maps.includes(map)) {
             matchRooms[room].bans.push(map);
+            if (matchRooms[room].bans.length === 2) {
+                const finalMap = maps.find(m => !matchRooms[room].bans.includes(m));
+                io.to(room).emit('mapSelected', { finalMap, teams: matchRooms[room].teams });
+                notifyResult(room, finalMap, matchRooms[room].teams);
+            }
         }
-        if (matchRooms[room].bans.length === maps.length - 1) {
-            const finalMap = maps.find(m => !matchRooms[room].bans.includes(m));
-            io.to(room).emit('mapSelected', { finalMap, teams: matchRooms[room].teams });
-            notifyResult(room, finalMap, matchRooms[room].teams);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
     });
 });
 
-// ✅ Server Health Check
-app.get('/health', (req, res) => {
-    res.send('Server is running');
-});
+function notifyResult(room, map, teams) {
+    const message = `Final Map: ${map}\nTeams:\nA: ${teams.A.join(', ')}\nB: ${teams.B.join(', ')}\nC: ${teams.C.join(', ')}\nD: ${teams.D.join(', ')}`;
 
-// ✅ Start the Server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    axios.post(process.env.DISCORD_WEBHOOK_URL, { content: message });
+
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD }
+    });
+
+    transporter.sendMail({
+        from: process.env.EMAIL,
+        to: 'business.gsg3ntertainment@gmail.com',
+        subject: 'Matchroom Result',
+        text: message
+    });
+}
+
+server.listen(5000, () => console.log('Server running on port 5000'));
+
+// Frontend (Next.js) - Simplified Example
+// Use SWR or React state management with WebSocket integration to handle real-time updates.
