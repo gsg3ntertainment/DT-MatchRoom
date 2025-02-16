@@ -1,8 +1,3 @@
-// monorepo-structure
-// /matchroom-app
-//    ├── frontend (Next.js)
-//    ├── backend (Node.js with Express & WebSockets)
-
 // Backend (Node.js + Express + WebSockets)
 const express = require('express');
 const http = require('http');
@@ -19,6 +14,8 @@ const io = new Server(server, {
         methods: ['GET', 'POST']
     }
 });
+
+const PORT = process.env.PORT || 5000;
 
 const matchRooms = {};
 const maps = ["Dust2", "Anubis", "Train", "Overpass", "Ancient", "Inferno", "Mirage"];
@@ -62,7 +59,4 @@ function notifyResult(room, map, teams) {
     });
 }
 
-server.listen(5000, () => console.log('Server running on port 5000'));
-
-// Frontend (Next.js) - Simplified Example
-// Use SWR or React state management with WebSocket integration to handle real-time updates.
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
