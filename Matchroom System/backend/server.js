@@ -1,9 +1,7 @@
-// monorepo-structure
-// /matchroom-app
-//    ├── frontend (Next.js)
-//    ├── backend (Node.js with Express & WebSockets)
-
 const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
+const SteamStrategy = require('passport-steam').Strategy;
 const http = require('http');
 const { Server } = require('socket.io');
 const nodemailer = require('nodemailer');
@@ -16,14 +14,62 @@ const io = new Server(server, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST'],
-        transports: ['websocket', 'polling'] // ✅ Required for Render
+        transports: ['websocket', 'polling']
     }
 });
 
-// Initialize Matchrooms
 const matchRooms = {};
 const maps = ["Dust2", "Anubis", "Train", "Overpass", "Ancient", "Inferno", "Mirage"];
+const waitingUsers = new Set(); // ✅ Store logged-in users
 
+// ✅ Setup session middleware
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true
+}));
+
+// ✅ Initialize Passport.js
+app.use(passport.initialize());
+app.use(passport.session());
+
+// ✅ Configure Steam authentication strategy
+passport.use(new SteamStrategy({
+    returnURL: `${process.env.BASE_URL}/auth/steam/return`,
+    realm: process.env.BASE_URL,
+    apiKey: process.env.STEAM_API_KEY
+}, (identifier, profile, done) => {
+    profile.steamId = identifier.match(/\d+$/)[0]; // Extract Steam ID
+    return done(null, profile);
+}));
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
+
+// ✅ Steam Login Route
+app.get('/auth/steam', passport.authenticate('steam'));
+
+// ✅ Steam Callback Route
+app.get('/auth/steam/return',
+    passport.authenticate('steam', { failureRedirect: '/' }),
+    (req, res) => {
+        waitingUsers.add(req.user); // ✅ Add user to waiting room
+        res.redirect('/waiting-room'); // Redirect to waiting room
+    }
+);
+
+// ✅ API to fetch waiting users
+app.get('/api/waiting-users', (req, res) => {
+    res.json(Array.from(waitingUsers));
+});
+
+// ✅ Logout Route
+app.get('/logout', (req, res) => {
+    waitingUsers.delete(req.user);
+    req.logout(() => res.redirect('/'));
+});
+
+// ✅ WebSockets for Matchroom
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
@@ -51,32 +97,11 @@ io.on('connection', (socket) => {
     });
 });
 
-// Send match results via Email & Discord
-function notifyResult(room, map, teams) {
-    const message = `Final Map: ${map}\nTeams:\nA: ${teams.A.join(', ')}\nB: ${teams.B.join(', ')}\nC: ${teams.C.join(', ')}\nD: ${teams.D.join(', ')}`;
-
-    // ✅ Send message to Discord webhook
-    axios.post(process.env.DISCORD_WEBHOOK_URL, { content: message }).catch(err => console.error("Discord webhook error:", err));
-
-    // ✅ Send email with match results
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD }
-    });
-
-    transporter.sendMail({
-        from: process.env.EMAIL,
-        to: 'business.gsg3ntertainment@gmail.com',
-        subject: 'Matchroom Result',
-        text: message
-    }).catch(err => console.error("Email sending error:", err));
-}
-
-// ✅ Keep-Alive Endpoint to Prevent Sleeping on Render
+// ✅ Server Health Check
 app.get('/health', (req, res) => {
     res.send('Server is running');
 });
 
-// ✅ Server starts on Render-compatible port
+// ✅ Start the Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
