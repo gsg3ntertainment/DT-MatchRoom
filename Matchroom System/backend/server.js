@@ -63,7 +63,7 @@ server.listen(PORT, () => console.log(Server running on port ${PORT}));
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io("http://localhost:5000");  // Replace with your deployed backend URL
+const socket = io("https://dt-matchroom.onrender.com");  // Replace with your deployed backend URL
 
 export default function WaitingRoom() {
     const [waitingUsers, setWaitingUsers] = useState([]);
