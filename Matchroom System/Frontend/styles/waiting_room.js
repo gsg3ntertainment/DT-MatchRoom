@@ -8,6 +8,7 @@ export default function WaitingRoom() {
     const [room, setRoom] = useState("");
     const [player, setPlayer] = useState({ name: "", team: "" });
 
+    // Fetch waiting users every 5 seconds
     useEffect(() => {
         const fetchUsers = async () => {
             const res = await fetch('https://dt-matchroom.onrender.com/api/waiting-users'); // Corrected URL
@@ -20,22 +21,37 @@ export default function WaitingRoom() {
         return () => clearInterval(interval);
     }, []);
 
+    // Join room
     const joinRoom = () => {
+        if (!room || !player.name || !player.team) {
+            alert("Please enter all details to join the room!");
+            return;
+        }
         socket.emit('joinRoom', { room, player });
     };
 
+    // Ban a map
     const banMap = (map) => {
         socket.emit('banMap', { room, captain: player.name, map });
     };
 
-    socket.on('roomUpdate', (matchRoomData) => {
-        console.log('Updated matchroom data:', matchRoomData);
-    });
+    // Socket listeners for room updates and map selection
+    useEffect(() => {
+        socket.on('roomUpdate', (matchRoomData) => {
+            console.log('Updated matchroom data:', matchRoomData);
+            setWaitingUsers(matchRoomData.teams.A.concat(matchRoomData.teams.B, matchRoomData.teams.C, matchRoomData.teams.D));
+        });
 
-    socket.on('mapSelected', (data) => {
-        console.log('Final map:', data.finalMap);
-        console.log('Teams:', data.teams);
-    });
+        socket.on('mapSelected', (data) => {
+            console.log('Final map:', data.finalMap);
+            console.log('Teams:', data.teams);
+        });
+
+        return () => {
+            socket.off('roomUpdate');
+            socket.off('mapSelected');
+        };
+    }, []);
 
     return (
         <div>
@@ -82,7 +98,11 @@ export default function WaitingRoom() {
                 <h2>Ban a Map</h2>
                 <button onClick={() => banMap("Dust2")}>Ban Dust2</button>
                 <button onClick={() => banMap("Mirage")}>Ban Mirage</button>
-                {/* Add buttons for other maps */}
+                <button onClick={() => banMap("Anubis")}>Ban Anubis</button>
+                <button onClick={() => banMap("Inferno")}>Ban Inferno</button>
+                <button onClick={() => banMap("Overpass")}>Ban Overpass</button>
+                <button onClick={() => banMap("Train")}>Ban Train</button>
+                <button onClick={() => banMap("Ancient")}>Ban Ancient</button>
             </div>
         </div>
     );
