@@ -4,7 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const path = require('path');  // Add this import statement
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 5000;
 const matchRooms = {};
 const maps = ["Dust2", "Anubis", "Train", "Overpass", "Ancient", "Inferno", "Mirage"];
 
+// Handle socket connections
 io.on('connection', (socket) => {
     socket.on('joinRoom', ({ room, player }) => {
         if (!matchRooms[room]) {
@@ -50,6 +51,7 @@ io.on('connection', (socket) => {
     });
 });
 
+// Notify via Discord and Email
 function notifyResult(room, map, teams) {
     const message = `Final Map: ${map}\nTeams:\nA: ${teams.A.join(', ')}\nB: ${teams.B.join(', ')}\nC: ${teams.C.join(', ')}\nD: ${teams.D.join(', ')}`;
 
