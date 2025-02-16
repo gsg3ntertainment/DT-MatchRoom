@@ -49,44 +49,4 @@
             document.getElementById('teamA').textContent = `Team A: ${teams.A.join(', ')}`;
             document.getElementById('teamB').textContent = `Team B: ${teams.B.join(', ')}`;
             document.getElementById('teamC').textContent = `Team C: ${teams.C.join(', ')}`;
-            document.getElementById('teamD').textContent = `Team D: ${teams.D.join(', ')}`;
-        }
-
-        // Ban a map
-        function banMap(map) {
-            socket.emit('banMap', { room, captain: player.name, map });
-        }
-    </script>
-</head>
-<body>
-    <h1>Welcome to the Matchroom</h1>
-    <p>Players will join and ban maps here.</p>
-
-    <!-- Player List -->
-    <div id="players">
-        <h2>Waiting Players:</h2>
-        <ul id="playerList"></ul>
-    </div>
-
-    <!-- Team Assignments -->
-    <div id="teams">
-        <h2>Teams</h2>
-        <div id="teamA"></div>
-        <div id="teamB"></div>
-        <div id="teamC"></div>
-        <div id="teamD"></div>
-    </div>
-
-    <!-- Map Ban Section -->
-    <div id="mapBan">
-        <h2>Ban a Map</h2>
-        <button onclick="banMap('Dust2')">Ban Dust2</button>
-        <button onclick="banMap('Mirage')">Ban Mirage</button>
-        <button onclick="banMap('Anubis')">Ban Anubis</button>
-        <button onclick="banMap('Inferno')">Ban Inferno</button>
-        <button onclick="banMap('Overpass')">Ban Overpass</button>
-        <button onclick="banMap('Train')">Ban Train</button>
-        <button onclick="banMap('Ancient')">Ban Ancient</button>
-    </div>
-</body>
-</html>
+            document.getElementById('teamD').textContent = `Team D: ${teams.D.join(', ')
