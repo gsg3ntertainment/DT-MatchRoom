@@ -72,7 +72,8 @@ export default function WaitingRoom() {
 
     useEffect(() => {
         const fetchUsers = async () => {
-            const res = await fetch('/api/waiting-users');
+            const res = await fetch('const res = await fetch('https://dt-matchroom.onrender.com/api/waiting-users');
+');
             const data = await res.json();
             setWaitingUsers(data);
         };
