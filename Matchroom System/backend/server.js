@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const path = require('path');  // Add this import statement
 require('dotenv').config();
 
 const app = express();
@@ -13,6 +14,14 @@ const io = new Server(server, {
         origin: '*',
         methods: ['GET', 'POST']
     }
+});
+
+// Serve static files for any static assets (e.g., images, CSS, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve the matchroom HTML page on the /matchroom route
+app.get('/matchroom', (req, res) => {
+    res.sendFile(path.join(__dirname, 'matchroom.html')); // Adjust path if needed
 });
 
 const PORT = process.env.PORT || 5000;
